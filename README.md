@@ -1,4 +1,4 @@
-# GeoCARphy (v1.6 · Nov 4, 2026)
+# GeoCARphy (v1.13 · Nov 4, 2026)
 
 One road trip a day on the real US map. Same trip for everyone. Live on the web, Nov 4. Plus game.
 
