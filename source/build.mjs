@@ -1,0 +1,22 @@
+import fs from 'fs';import {CITIES,ROADS} from './net.mjs';import {LIFE} from './life.mjs';
+const g=JSON.parse(fs.readFileSync('../../usatlas/ne/geojson/ne_50m_admin_1_states_provinces_lakes.geojson'));
+const fe=g.features.filter(f=>f.properties.admin==='United States of America'&&!['Alaska','Hawaii'].includes(f.properties.name));
+const d=Math.PI/180,p1=33*d,p2=45*d,l0=-96*d,f0=39*d,n=Math.log(Math.cos(p1)/Math.cos(p2))/Math.log(Math.tan(Math.PI/4+p2/2)/Math.tan(Math.PI/4+p1/2)),F=Math.cos(p1)*Math.pow(Math.tan(Math.PI/4+p1/2),n)/n,rho=f=>F/Math.pow(Math.tan(Math.PI/4+f/2),n),r0=rho(f0),k=1450/.92;
+const P=(lon,lat)=>{const r=rho(lat*d),t=n*(lon*d-l0);return [+(r*Math.sin(t)*k).toFixed(1),+(-(r0-r*Math.cos(t))*k).toFixed(1)]};
+const S={},PG={},CEN={};let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;
+for(const f of fe){const nm=f.properties.name,polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;S[nm]=polys.map(pl=>pl.map(ring=>'M'+ring.map(c=>{const q=P(c[0],c[1]);mnx=Math.min(mnx,q[0]);mxx=Math.max(mxx,q[0]);mny=Math.min(mny,q[1]);mxy=Math.max(mxy,q[1]);return q.join(',')}).join('L')+'Z').join('')).join('');PG[nm]=polys.map(pl=>pl[0].map(c=>P(c[0],c[1])));let best=PG[nm].slice().sort((a,b)=>b.length-a.length)[0],A=0,cx=0,cy=0;for(let i=0;i<best.length-1;i++){const [x0,y0]=best[i],[x1,y1]=best[i+1],q=x0*y1-x1*y0;A+=q;cx+=(x0+x1)*q;cy+=(y0+y1)*q}CEN[nm]=[+(cx/(3*A)).toFixed(1),+(cy/(3*A)).toFixed(1)]}
+const names=Object.keys(PG);console.log('states',names.length);
+const inPoly=(pt,r)=>{let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const [xi,yi]=r[i],[xj,yj]=r[j];if((yi>pt[1])!==(yj>pt[1])&&pt[0]<(xj-xi)*(pt[1]-yi)/(yj-yi)+xi)c=!c}return c};
+const stateAt=pt=>{for(const n in PG)if(PG[n].some(r=>inPoly(pt,r)))return n;return null};
+const PAL=['#e6d8b4','#dcd3ad','#e2c9a2','#d6c9a6','#cfd0ae'],near=(a,b)=>{const sa=new Set(PG[a].flat().map(p=>p.join()));return PG[b].flat().some(p=>sa.has(p.join()))},FILL={};names.forEach(n=>{const used=new Set(names.filter(m=>FILL[m]!==undefined&&near(n,m)).map(m=>FILL[m]));let i=0;while(used.has(i)&&i<4)i++;FILL[n]=i});for(const n in FILL)FILL[n]=PAL[FILL[n]];
+const asp=214/345,box=(a,b,c,e,pad)=>{let w=Math.max(c-a+pad*2,(e-b+pad*2)/asp),h=w*asp;return [+((a+c)/2-w/2).toFixed(1),+((b+e)/2-h/2).toFixed(1),+w.toFixed(1),+h.toFixed(1)]};const FULL=box(mnx,mny,mxx,mxy,16);
+const hash=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%997;return h/997};
+const cr=(p,sn=4)=>{const o=[];for(let i=0;i<p.length-1;i++){const a=p[Math.max(0,i-1)],b=p[i],c=p[i+1],e=p[Math.min(p.length-1,i+2)];for(let j=0;j<sn;j++){const t=j/sn,t2=t*t,t3=t2*t;o.push([0,1].map(k=>+(.5*(2*b[k]+(c[k]-a[k])*t+(2*a[k]-5*b[k]+4*c[k]-e[k])*t2+(3*b[k]-a[k]-3*c[k]+e[k])*t3)).toFixed(0)))}}o.push(p[p.length-1].map(v=>+v.toFixed(0)));return o};
+const R=x=>x*Math.PI/180,hav=(a,b)=>{const q=Math.sin(R(b[1]-a[1])/2)**2+Math.cos(R(a[1]))*Math.cos(R(b[1]))*Math.sin(R(b[0]-a[0])/2)**2;return 3958.8*2*Math.asin(Math.sqrt(q))};
+const CITY={};for(const c in CITIES){const v=CITIES[c];CITY[c]=[...P(v[0],v[1]),v[2],v[3]?1:0]}
+const MI={'Missoula>Boise':385,'Eugene>Bend':130,'Billings>Salt Lake City':550,'Denver>Salt Lake City':525,'Cheyenne>Rapid City':305,'Atlanta>Knoxville':215,'Portland>Bend':160,'Tulsa>Wichita':175,'Tampa>Miami':280};const RD=ROADS.map(r=>{const [a,b,nm,look,toll]=r,A=CITY[a],B=CITY[b],dx=B[0]-A[0],dy=B[1]-A[1],key=a+'>'+b,s=(hash(key)-.5)*.1,s2=(hash(key+'x')-.5)*.09,pts=cr([A.slice(0,2),[A[0]+dx*.33-dy*s,A[1]+dy*.33+dx*s],[A[0]+dx*.67-dy*s2,A[1]+dy*.67+dx*s2],B.slice(0,2)]);
+ const mi=MI[key]||Math.round(hav(CITIES[a],CITIES[b])*1.16/5)*5,cross=[];let cur=stateAt(pts[0])||CITIES[a][2],s0=cur;pts.forEach((q,i)=>{const t=stateAt(q);if(t&&t!==cur&&i>0){cross.push([+(i/(pts.length-1)).toFixed(2),t]);cur=t}});
+ return [a,b,nm,look,toll?+toll:0,mi,pts.flat(),cross,s0]});
+const out='var FULL='+JSON.stringify(FULL)+',ST='+JSON.stringify(S)+',FILL='+JSON.stringify(FILL)+',CEN='+JSON.stringify(CEN)+',CITY='+JSON.stringify(CITY)+',RD='+JSON.stringify(RD)+',LIFE='+JSON.stringify(LIFE)+',MIU='+(2800/1450).toFixed(3)+';function PT(i){var f=RD[i][6],o=[];for(var k=0;k<f.length;k+=2)o.push([f[k],f[k+1]]);return o}\n'+fs.readFileSync('gen.js','utf8');
+fs.writeFileSync('data.js',out);
+let h=fs.readFileSync('page.html','utf8').replace('/*@GEO*/',()=>out+'\n'+fs.readFileSync('demo-frame.js','utf8')).replace('/*@DCSS*/',()=>fs.readFileSync('demo-frame.css','utf8'));fs.writeFileSync('index.html',h);console.log(h.length,'data',out.length)

@@ -1,0 +1,13 @@
+import fs from 'fs';import vm from 'vm';
+const c={console,Math,Date};vm.createContext(c);vm.runInContext(fs.readFileSync('data.js','utf8'),c);
+const days=[];for(let i=0;i<+(process.argv[2]||366);i++){const d=new Date(2026,10,9+i,12);days.push(c.dayStr(d))}
+const REF={cash:36,miles:210,time:190},BASE={cash:{risk:25,right:18,close:9,wrong:22},miles:{risk:60,right:25,close:10,wrong:40},time:{risk:45,right:15,close:7,wrong:30}},FF={cash:1.22,miles:1.16,time:1.18};
+const COST={cash:r=>Math.round(r.mi/20*3.19*(r.k==='gas'?.8:1))+(r.k==='toll'?r.v*9:0),miles:r=>r.k==='toll'?Math.round(r.mi*.9):r.k==='gas'?r.mi-60:r.mi,time:r=>Math.round(r.mi/(r.k==='toll'?75:r.k==='gas'?60:65)*60)};
+const st=[];const fails=[];
+const play=(T,pr,smart,rnd)=>{const M=T.mode,cost=COST[M],b=c.bestRoute(T,cost),K=Math.max(.5,Math.min(1.6,b.cost/(b.path.length-1)/REF[M])),A=BASE[M];const V0=b.cost*FF[M];let V=V0,at=T.start,q=0;while(at!==T.end){const R=T.roads[at];let r=R[Math.floor(rnd()*R.length)];if(smart){const E={};const g=x=>x===T.end?0:E[x]??(E[x]=Math.min(...T.roads[x].map(y=>cost(y)+(y.k==='risk'?y.v[0]*A.risk*K:0)+g(y.to))));r=R.slice().sort((p,w)=>cost(p)+(p.k==='risk'?p.v[0]*A.risk*K:0)+g(p.to)-cost(w)-(w.k==='risk'?w.v[0]*A.risk*K:0)-g(w.to))[0]}V-=cost(r);if(r.k==='risk'&&rnd()<r.v[0])V-=A.risk*K;const ans=()=>{q++;return rnd()<pr?A.right*K:-A.wrong*K};if(r.mi>=150&&rnd()<.6)V=Math.min(V0*1.2,V+ans()/2);if(V<=0)return {w:0,q};at=r.to;if(at!==T.end){V=Math.min(V0*1.2,V+ans());if(V<=0)return {w:0,q}}}return {w:1,q,p:V/V0}};
+let by={};const pairs=new Set;const cities={};let maxLegs=0;
+for(const ds of days){let T;try{T=c.genTrip(ds)}catch(e){fails.push(ds+' '+e.message);continue}pairs.add(T.name);cities[T.start]=(cities[T.start]||0)+1;
+ const w=c.dayOf(ds).getDay(),M=T.mode,b=c.bestRoute(T,COST[M]);maxLegs=Math.max(maxLegs,b.path.length-1);const o=by[w]=by[w]||{n:0,legs:0,mi:0,dec:0,res:{}};o.n++;o.legs+=b.path.length-1;o.dec+=Object.values(T.roads).filter(x=>x.length>1).length;
+ for(const [nm,pr,sm] of [['smart90',.9,1],['smart70',.7,1],['rand70',.7,0],['rand45',.45,0]]){const R=c.rng(c.seedOf(ds+nm));const a=o.res[nm]=o.res[nm]||{w:0,n:0,q:0,s3:0};for(let i=0;i<60;i++){const z=play(T,pr,sm,R);a.n++;a.w+=z.w;a.q+=z.q;if(z.w&&z.p>=.16)a.s3++}}}
+console.log('days',days.length,'fails',fails.slice(0,5),'distinct trips',pairs.size,'maxLegs',maxLegs,'start cities',Object.keys(cities).length);
+for(const w of [1,2,3,4,5,6,0]){const o=by[w];console.log('dow',w,'n',o.n,'legs',(o.legs/o.n).toFixed(1),'dec',(o.dec/o.n).toFixed(1),Object.entries(o.res).map(([k,a])=>k+' win '+Math.round(a.w/a.n*100)+'% 3* '+Math.round(a.s3/a.n*100)+'% q '+(a.q/a.n).toFixed(1)).join(' | '))}
