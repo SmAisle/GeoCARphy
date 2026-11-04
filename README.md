@@ -1,6 +1,6 @@
-# GeoCARphy (v1.4 · Nov 4, 2026)
+# GeoCARphy (v1.6 · Nov 4, 2026)
 
-One road trip a day on the real US map. Same trip for everyone. Not live yet: waiting on Jeff's OK.
+One road trip a day on the real US map. Same trip for everyone. Live on the web, Nov 4. Plus game.
 
 ## Ready to go live
 Upload to a new repo SmAisle/GeoCARphy (site: smaisle.app/GeoCARphy/, Jeff creates it): index.html, owner.html, icon-180/192/512/1024.png.
