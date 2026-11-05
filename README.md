@@ -20,3 +20,7 @@ Rebuild: `node build.mjs` (needs Natural Earth 50m states file; public domain). 
 - "You beat 72%" stores scores in the open dg_shares list under ids starting mm (no Firebase step for Jeff). Not tested live: this workspace can't reach Firebase. Shows only once 10 or more players have finished.
 - Balance is simulated, not playtested by people.
 - Name chosen Nov 4, for now; said Gee-oh-car-fee. Formerly Mile Marker. App Store and lawyer checks still open. The project folder stays mile-marker.
+
+## v1.22 (Nov 4)
+Out of gas, time or money: a yellow ‹ smAisle Daily button sits under Menu and Try again, so one tap always leaves. Replaces branch finish-back-button (v1.15.3), which was built before the planning screens.
+Changed in source/page.html and, by the same edit, in index.html, because build.mjs needs the usatlas map files that aren't in this repo.
